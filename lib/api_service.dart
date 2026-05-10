@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiService {
   // CONFIGURACIÓN GLOBAL: Cambia esta URL para apuntar a tu servidor
   static const String baseUrl =
-     "http://10.0.2.2:8000/api"; // Emulador Android
-      // "http://192.168.1.19:8000/api"; // Servidor en red local (Cambia esta IP por la de tu PC)
+    //  "http://10.0.2.2:8000/api"; // Emulador Android
+      "http://192.168.1.9:8000/api"; // Servidor en red local (Cambia esta IP por la de tu PC)
   // php artisan serve --host=0.0.0.0 --port=8000 comando para servir en toda la red local
   // --- Manejo del Token ---
 
@@ -166,19 +166,21 @@ class ApiService {
 
   // --- Unidades (Units) ---
 
-  Future<List<dynamic>> getUnits() async {
+  Future<Map<String, dynamic>> getUnits({int page = 1}) async {
     try {
       final headers = await _getHeaders();
       final response = await http.get(
-        Uri.parse('$baseUrl/units'),
+        Uri.parse('$baseUrl/units?page=$page'),
         headers: headers,
       );
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) return decoded;
+        return {'data': decoded}; // Fallback for old style
       }
-      return [];
+      return {'data': []};
     } catch (e) {
-      return [];
+      return {'data': []};
     }
   }
 
@@ -433,39 +435,68 @@ class ApiService {
     }
   }
 
-  Future<List<dynamic>> getAllUsers({
+  Future<Map<String, dynamic>> getAllUsers({
     String? name,
     String? unit,
     String? plate,
+    int? unitId,
+    String? tower,
+    String? apartment,
+    int page = 1,
   }) async {
     try {
       final headers = await _getHeaders();
-      String url = '$baseUrl/admin/users?';
+      String url = '$baseUrl/admin/users?page=$page&';
       if (name != null && name.isNotEmpty)
         url += 'name=${Uri.encodeComponent(name)}&';
       if (unit != null && unit.isNotEmpty)
         url += 'unit=${Uri.encodeComponent(unit)}&';
       if (plate != null && plate.isNotEmpty)
         url += 'plate=${Uri.encodeComponent(plate)}&';
+      if (unitId != null)
+        url += 'unit_id=$unitId&';
+      if (tower != null && tower.isNotEmpty)
+        url += 'tower=${Uri.encodeComponent(tower)}&';
+      if (apartment != null && apartment.isNotEmpty)
+        url += 'apartment=${Uri.encodeComponent(apartment)}&';
 
       final response = await http.get(Uri.parse(url), headers: headers);
-      return response.statusCode == 200 ? jsonDecode(response.body) : [];
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {'data': []};
     } catch (e) {
-      return [];
+      return {'data': []};
     }
   }
 
-  Future<List<dynamic>> getAllUnits({String? name}) async {
+  Future<Map<String, dynamic>> getAllUnits({String? name, int page = 1}) async {
     try {
       final headers = await _getHeaders();
-      String url = '$baseUrl/units';
+      String url = '$baseUrl/units?page=$page&';
       if (name != null && name.isNotEmpty) {
-        url += '?name=${Uri.encodeComponent(name)}';
+        url += 'name=${Uri.encodeComponent(name)}&';
       }
       final response = await http.get(Uri.parse(url), headers: headers);
-      return response.statusCode == 200 ? jsonDecode(response.body) : [];
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {'data': []};
     } catch (e) {
-      return [];
+      return {'data': []};
+    }
+  }
+
+  Future<Map<String, dynamic>> getDashboardStats() async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(Uri.parse('$baseUrl/admin/stats'), headers: headers);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {};
+    } catch (e) {
+      return {};
     }
   }
 
@@ -502,29 +533,35 @@ class ApiService {
 
   // --- Historial de Consultas ---
 
-  Future<List<dynamic>> getMyConsultations(int userId) async {
+  Future<Map<String, dynamic>> getMyConsultations(int userId, {int page = 1}) async {
     try {
       final headers = await _getHeaders();
       final response = await http.get(
-        Uri.parse('$baseUrl/consultations/my?user_id=$userId'),
+        Uri.parse('$baseUrl/consultations/my?user_id=$userId&page=$page'),
         headers: headers,
       );
-      return response.statusCode == 200 ? jsonDecode(response.body) : [];
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {'data': []};
     } catch (e) {
-      return [];
+      return {'data': []};
     }
   }
 
-  Future<List<dynamic>> getOthersConsultations(int userId) async {
+  Future<Map<String, dynamic>> getOthersConsultations(int userId, {int page = 1}) async {
     try {
       final headers = await _getHeaders();
       final response = await http.get(
-        Uri.parse('$baseUrl/consultations/others?user_id=$userId'),
+        Uri.parse('$baseUrl/consultations/others?user_id=$userId&page=$page'),
         headers: headers,
       );
-      return response.statusCode == 200 ? jsonDecode(response.body) : [];
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {'data': []};
     } catch (e) {
-      return [];
+      return {'data': []};
     }
   }
 }

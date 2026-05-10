@@ -243,13 +243,13 @@ class DataRepository {
 
   // --- Historial de Consultas ---
 
-  Future<List<dynamic>> getMyConsultations(int userId) async {
+  Future<Map<String, dynamic>> getMyConsultations(int userId, {int page = 1}) async {
     // Estas consultas siempre las traemos de la API para estar actualizados
-    return await _apiService.getMyConsultations(userId);
+    return await _apiService.getMyConsultations(userId, page: page);
   }
 
-  Future<List<dynamic>> getOthersConsultations(int userId) async {
+  Future<Map<String, dynamic>> getOthersConsultations(int userId, {int page = 1}) async {
     // Estas consultas siempre las traemos de la API
-    return await _apiService.getOthersConsultations(userId);
+    return await _apiService.getOthersConsultations(userId, page: page);
   }
 }

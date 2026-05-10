@@ -216,7 +216,7 @@ class _ProfilePageState extends State<ProfilePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(controller: nameC, decoration: const InputDecoration(labelText: 'Nombre'), enabled: !isDialogProcessing),
-                TextField(controller: phoneC, decoration: const InputDecoration(labelText: 'Teléfono'), keyboardType: TextInputType.phone, enabled: !isDialogProcessing),
+                TextField(controller: phoneC, decoration: const InputDecoration(labelText: 'Teléfono'), keyboardType: TextInputType.number, enabled: !isDialogProcessing),
                 CheckboxListTile(
                   title: const Text('Tiene WhatsApp'),
                   value: hasWhatsapp,
@@ -412,7 +412,7 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(height: 12),
               _buildTextField(_lastNameController, 'Apellidos', Icons.person_outline),
               const SizedBox(height: 12),
-              _buildTextField(_phoneController, 'Celular', Icons.phone, type: TextInputType.phone),
+              _buildTextField(_phoneController, 'Celular', Icons.phone, type: TextInputType.number),
               const SizedBox(height: 12),
               _buildPasswordField(),
               const SizedBox(height: 12),

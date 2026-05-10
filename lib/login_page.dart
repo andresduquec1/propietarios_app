@@ -104,7 +104,9 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoadingUnits = true);
     try {
       // Try to get units from API
-      final units = await _apiService.getUnits();
+      final response = await _apiService.getUnits();
+      final List<dynamic> units = response['data'] ?? [];
+      
       if (units.isNotEmpty) {
         await _dbHelper.saveUnits(units);
       }
@@ -455,7 +457,7 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 16),
                   _buildTextField(_lastNameController, 'Apellidos', Icons.person_outline_rounded),
                   const SizedBox(height: 16),
-                  _buildTextField(_phoneController, 'Número de Celular', Icons.phone_android_rounded, type: TextInputType.phone),
+                  _buildTextField(_phoneController, 'Número de Celular', Icons.phone_android_rounded, type: TextInputType.number),
                   const SizedBox(height: 16),
                 ],
                 

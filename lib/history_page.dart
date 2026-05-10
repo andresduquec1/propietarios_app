@@ -12,6 +12,7 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final ScrollController _scrollController = ScrollController();
   final DataRepository _repository = DataRepository();
   int? _userId;
   bool _isAdmin = false;
@@ -20,22 +21,49 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
   List<dynamic> _othersConsultations = [];
   bool _isLoading = true;
 
+  // Pagination state
+  int _myPage = 1;
+  int _othersPage = 1;
+  bool _myHasMore = true;
+  bool _othersHasMore = true;
+  bool _isLoadingMore = false;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _scrollController.addListener(_onScroll);
     _loadData();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && !_isLoadingMore) {
+        if (_tabController.index == 0 && _myHasMore) {
+          _loadMoreMy();
+        } else if (_tabController.index == 1 && _othersHasMore) {
+          _loadMoreOthers();
+        }
+      }
+    }
   }
 
   Future<void> _loadData() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _myPage = 1;
+      _othersPage = 1;
+      _myHasMore = true;
+      _othersHasMore = true;
+    });
     
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getInt('user_id');
@@ -43,12 +71,15 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
 
     if (_userId != null) {
       try {
-        final my = await _repository.getMyConsultations(_userId!);
-        final others = await _repository.getOthersConsultations(_userId!);
+        final myResponse = await _repository.getMyConsultations(_userId!, page: 1);
+        final othersResponse = await _repository.getOthersConsultations(_userId!, page: 1);
+        
         if (mounted) {
           setState(() {
-            _myConsultations = my;
-            _othersConsultations = others;
+            _myConsultations = myResponse['data'] ?? [];
+            _othersConsultations = othersResponse['data'] ?? [];
+            _myHasMore = myResponse['next_page_url'] != null;
+            _othersHasMore = othersResponse['next_page_url'] != null;
           });
         }
       } catch (e) {
@@ -57,6 +88,50 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
     }
     if (mounted) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadMoreMy() async {
+    if (_isLoadingMore || !_myHasMore || _userId == null) return;
+    setState(() => _isLoadingMore = true);
+    
+    try {
+      final nextPage = _myPage + 1;
+      final response = await _repository.getMyConsultations(_userId!, page: nextPage);
+      final newData = response['data'] ?? [];
+      
+      if (mounted) {
+        setState(() {
+          _myConsultations.addAll(newData);
+          _myPage = nextPage;
+          _myHasMore = response['next_page_url'] != null;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      setState(() => _isLoadingMore = false);
+    }
+  }
+
+  Future<void> _loadMoreOthers() async {
+    if (_isLoadingMore || !_othersHasMore || _userId == null) return;
+    setState(() => _isLoadingMore = true);
+    
+    try {
+      final nextPage = _othersPage + 1;
+      final response = await _repository.getOthersConsultations(_userId!, page: nextPage);
+      final newData = response['data'] ?? [];
+      
+      if (mounted) {
+        setState(() {
+          _othersConsultations.addAll(newData);
+          _othersPage = nextPage;
+          _othersHasMore = response['next_page_url'] != null;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      setState(() => _isLoadingMore = false);
     }
   }
 
@@ -140,9 +215,16 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
       );
     }
     return ListView.builder(
+      controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: _myConsultations.length,
+      itemCount: _myConsultations.length + (_myHasMore ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index == _myConsultations.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
         final item = _myConsultations[index];
         final vehicle = item['vehicle'];
         final date = _parseDateTime(item['created_at']);
@@ -196,9 +278,16 @@ class _HistoryPageState extends State<HistoryPage> with SingleTickerProviderStat
       );
     }
     return ListView.builder(
+      controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: _othersConsultations.length,
+      itemCount: _othersConsultations.length + (_othersHasMore ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index == _othersConsultations.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
         final item = _othersConsultations[index];
         final user = item['user'];
         final vehicle = item['vehicle'];
