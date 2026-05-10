@@ -1,0 +1,3 @@
+faltantes:
+cambio de contraseña de usuario
+en el registro de usuario tiene que ingresar el código de la unidad
